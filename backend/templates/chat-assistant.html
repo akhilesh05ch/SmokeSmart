@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SmokeSmart - Chat Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',sans-serif; background:#f0f4ff; color:#2d3748; }
+nav { background:white; padding:20px 60px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+.logo { display:flex; align-items:center; gap:8px; font-size:18px; font-weight:600; }
+.logo-icon { width:32px;height:32px;background:#2563eb;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:20px; }
+.nav-links { display:flex; gap:40px; list-style:none; }
+.nav-links a { text-decoration:none;color:#64748b;font-size:14px;font-weight:500; transition: color 0.3s; }
+.nav-links a:hover, .nav-links a.active { color:#2563eb; }
+
+.main-container { max-width:1400px; margin:40px auto; padding:0 40px; display:grid; grid-template-columns:1fr 400px; gap:24px; }
+.page-title { grid-column:1/-1; text-align:center; margin-bottom:20px; }
+.page-title h1 { font-size:32px; font-weight:600; color:#1e293b; margin-bottom:8px; }
+.page-title p { font-size:14px; color:#64748b; }
+
+.chat-container { background:white; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08); display:flex; flex-direction:column; height:600px; overflow:hidden; }
+.chat-messages { flex:1; padding:24px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; }
+.message { display:flex; align-items:flex-start; gap:12px; animation: fadeIn 0.3s ease-in; }
+.message.user { flex-direction:row-reverse; }
+.message-icon { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:18px; }
+.message.bot .message-icon { background:#dbeafe; }
+.message.user .message-icon { background:#e0e7ff; }
+.message-content { background:#f1f5f9; padding:12px 16px; border-radius:12px; max-width:70%; font-size:14px; line-height:1.6; white-space: pre-wrap; }
+.message.user .message-content { background:#2563eb; color:white; }
+.message.bot .message-content { background:#f1f5f9; color:#334155; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-input { padding:20px; border-top:1px solid #e2e8f0; display:flex; gap:12px; align-items:center; }
+.chat-input input { flex:1; padding:12px 20px; border:1px solid #e2e8f0; border-radius:24px; font-size:14px; outline:none; transition:border-color 0.3s; }
+.chat-input input:focus { border-color:#2563eb; }
+.send-btn { width:40px; height:40px; background:#2563eb; border:none; border-radius:50%; color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.3s; }
+.send-btn:hover { background:#1d4ed8; }
+.send-btn:disabled { background:#94a3b8; cursor: not-allowed; }
+
+.risk-card { background:white; border-radius:16px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.08); }
+.risk-header { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; margin-bottom:20px; }
+.risk-header.low { color:#16a34a; }
+.risk-header.moderate { color:#f59e0b; }
+.risk-header.high { color:#dc2626; }
+.risk-header.unknown { color:#64748b; }
+
+.risk-circle { width:180px; height:180px; margin:20px auto; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; transition:background 0.6s ease; }
+.risk-circle::before { content:''; width:140px; height:140px; background:white; border-radius:50%; position:absolute; }
+.risk-percentage { position:relative; z-index:1; text-align:center; }
+.risk-percentage h2 { font-size:48px; font-weight:700; margin:0; transition: color 0.6s ease; }
+.risk-percentage p { font-size:13px; color:#64748b; margin-top:4px; margin-bottom:0; }
+
+.risk-description { text-align:center; font-size:13px; color:#64748b; line-height:1.6; margin-top:20px; padding-top:20px; border-top:1px solid #f1f5f9; }
+.quick-results { margin-top:24px; }
+.quick-results h3 { font-size:16px; font-weight:600; margin-bottom:16px; color:#1e293b; }
+.result-item { display:flex; align-items:flex-start; gap:8px; font-size:13px; color:#475569; margin-bottom:12px; line-height:1.5; }
+.result-bullet { width:6px; height:6px; background:#2563eb; border-radius:50%; margin-top:6px; flex-shrink:0; }
+.disclaimer { margin-top:24px; padding:16px; background:#fef3c7; border-radius:8px; font-size:12px; color:#78350f; text-align:center; line-height:1.5; }
+
+.typing-indicator {
+  display: none;
+  padding: 12px 16px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  width: fit-content;
+}
+.typing-indicator span {
+  height: 8px;
+  width: 8px;
+  background: #64748b;
+  border-radius: 50%;
+  display: inline-block;
+  margin: 0 2px;
+  animation: typing 1.4s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.7; }
+  30% { transform: translateY(-10px); opacity: 1; }
+}
+
+@media (max-width:1024px) {
+  .main-container { grid-template-columns:1fr; padding:0 20px; }
+  nav { padding:20px; }
+  .chat-container { height:500px; }
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><div class="logo-icon">🚭</div><span>No-Sutta</span></div>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="#" class="active">Chat Assistant</a></li>
+    <li><a href="about.html">About</a></li>
+  </ul>
+</nav>
+
+<div class="page-title">
+  <h1>No-Sutta Chat Assistant</h1>
+  <p>Your personalized health companion</p>
+</div>
+
+<div class="main-container">
+  <div class="chat-container">
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+        <div class="message-icon">🤖</div>
+        <div class="message-content">Hello! I'm your health advisor. I'm here to help you understand your cardiovascular health and support your journey to better health.
+
+Would you like me to assess your cardiovascular disease risk, or would you prefer to discuss other health-related concerns?</div>
+      </div>
+    </div>
+
+    <div class="chat-input">
+      <input type="text" placeholder="Type your message..." id="userInput" autocomplete="off">
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">→</button>
+    </div>
+  </div>
+
+  <div class="risk-card">
+    <div class="risk-header unknown" id="riskHeader">
+      ⚠️ CVD Risk Assessment
+    </div>
+    
+    <div class="risk-circle" id="riskCircle" style="background: conic-gradient(#cbd5e1 0% 0%, #e5e7eb 0% 100%);">
+      <div class="risk-percentage">
+        <h2 id="riskPercent" style="color:#94a3b8;">--%</h2>
+        <p id="riskLevel">Calculating...</p>
+      </div>
+    </div>
+
+    <div class="risk-description" id="riskDescription">
+      Chat with the assistant to provide your health information, and I'll calculate your cardiovascular disease risk in real-time.
+    </div>
+
+    <div class="quick-results">
+      <h3>Contributing Factors</h3>
+      <div id="factorsList">
+        <div class="result-item">
+          <div class="result-bullet"></div>
+          <span>Start chatting to gather your health data...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      This assessment is based on the Framingham Heart Study algorithm and is for educational purposes. Always consult healthcare professionals for medical advice.
+    </div>
+  </div>
+</div>
+
+<script>
+let sessionId = 'session_' + Date.now();
+let isSending = false;
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function formatBotMessage(text) {
+  // Convert markdown-style bold to HTML
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Convert bullet points
+  text = text.replace(/^[•·]\s/gm, '• ');
+  return text;
+}
+
+function addMessage(sender, text) {
+  const messagesDiv = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'message ' + sender;
+  
+  const formattedText = sender === 'bot' ? formatBotMessage(text) : escapeHtml(text);
+  
+  div.innerHTML = `
+    <div class="message-icon">${sender === 'bot' ? '🤖' : '👤'}</div>
+    <div class="message-content">${formattedText}</div>
+  `;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function showTypingIndicator() {
+  const messagesDiv = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'message bot';
+  div.id = 'typingIndicator';
+  div.innerHTML = `
+    <div class="message-icon">🤖</div>
+    <div class="typing-indicator" style="display:block;">
+      <span></span><span></span><span></span>
+    </div>
+  `;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const indicator = document.getElementById('typingIndicator');
+  if (indicator) indicator.remove();
+}
+
+async function sendMessage() {
+  if (isSending) return;
+  
+  const input = document.getElementById('userInput');
+  const message = input.value.trim();
+  if (!message) return;
+  
+  addMessage('user', message);
+  input.value = '';
+  
+  isSending = true;
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  
+  showTypingIndicator();
+  
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ message, session_id: sessionId })
+    });
+    
+    const data = await res.json();
+    removeTypingIndicator();
+
+    if (data.error) {
+      addMessage('bot', 'Error: ' + data.error);
+      return;
+    }
+
+    // Display bot's response
+    addMessage('bot', data.response || '...');
+
+    // Update risk meter if we have data
+    if (data.risk_score !== null && data.risk_score !== undefined) {
+      updateRiskMeter(data.risk_score, data.risk_level || 'Unknown');
+      updateFactorsList(data.risk_factors || []);
+      if (data.explanation) {
+        document.getElementById('riskDescription').textContent = data.explanation;
+      }
+    } else {
+      // No score yet - show gathering message
+      updateRiskMeter(null, 'Gathering Info');
+      if (data.risk_factors && data.risk_factors.length > 0) {
+        updateFactorsList(data.risk_factors);
+      }
+    }
+
+    if (data.session_id) sessionId = data.session_id;
+
+  } catch (err) {
+    console.error(err);
+    removeTypingIndicator();
+    addMessage('bot', 'Error: Could not reach server. Please try again.');
+  } finally {
+    isSending = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function updateRiskMeter(score, level) {
+  const circle = document.getElementById('riskCircle');
+  const pctEl = document.getElementById('riskPercent');
+  const levelEl = document.getElementById('riskLevel');
+  const headerEl = document.getElementById('riskHeader');
+  
+  if (score === null || score === undefined) {
+    // No data yet
+    circle.style.background = 'conic-gradient(#cbd5e1 0% 0%, #e5e7eb 0% 100%)';
+    pctEl.textContent = '--%';
+    pctEl.style.color = '#94a3b8';
+    levelEl.textContent = level || 'Gathering Info';
+    headerEl.className = 'risk-header unknown';
+    headerEl.innerHTML = '💬 ' + (level === 'Gathering Info' ? 'Gathering Information' : 'CVD Risk Assessment');
+    return;
+  }
+  
+  const s = Math.max(0, Math.min(100, Math.round(Number(score))));
+  
+  // Determine color based on level
+  let color = '#94a3b8';
+  let headerClass = 'unknown';
+  let icon = '⚠️';
+  
+  const levelLower = (level || '').toLowerCase();
+  if (levelLower === 'low') {
+    color = '#16a34a';
+    headerClass = 'low';
+    icon = '✓';
+  } else if (levelLower === 'moderate') {
+    color = '#f59e0b';
+    headerClass = 'moderate';
+    icon = '⚠️';
+  } else if (levelLower === 'high') {
+    color = '#ef4444';
+    headerClass = 'high';
+    icon = '⚠️';
+  }
+  
+  // Update circle with conic gradient
+  circle.style.background = `conic-gradient(${color} 0% ${s}%, #e5e7eb ${s}% 100%)`;
+  
+  // Update percentage and level
+  pctEl.textContent = s + '%';
+  pctEl.style.color = color;
+  levelEl.textContent = level || 'Unknown';
+  
+  // Update header
+  headerEl.className = 'risk-header ' + headerClass;
+  headerEl.innerHTML = icon + ' CVD Risk Assessment';
+  
+  // Accessibility
+  circle.setAttribute('aria-label', `Cardiovascular risk ${s} percent, ${level} risk`);
+}
+
+function updateFactorsList(factors) {
+  const container = document.getElementById('factorsList');
+  container.innerHTML = '';
+  
+  if (!factors || factors.length === 0) {
+    container.innerHTML = `
+      <div class="result-item">
+        <div class="result-bullet"></div>
+        <span>No specific factors identified yet.</span>
+      </div>
+    `;
+    return;
+  }
+  
+  for (const factor of factors) {
+    const div = document.createElement('div');
+    div.className = 'result-item';
+    div.innerHTML = `
+      <div class="result-bullet"></div>
+      <span>${escapeHtml(factor)}</span>
+    `;
+    container.appendChild(div);
+  }
+}
+
+// Keyboard enter to send
+document.getElementById('userInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter' && !isSending) {
+    sendMessage();
+  }
+});
+
+// Focus input on load
+window.addEventListener('load', function() {
+  document.getElementById('userInput').focus();
+});
+</script>
+</body>
+</html>
