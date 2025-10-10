@@ -1,15 +1,13 @@
 import re
 import json
 import math
-import os
 import google.generativeai as genai
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # ---------- CONFIG ----------
-# Get API key from environment variable (for security in production)
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyD9qQPdaze2lPrAK0VnYBYLI3SGH5PSHhQ')
+GEMINI_API_KEY = "AIzaSyD9qQPdaze2lPrAK0VnYBYLI3SGH5PSHhQ"
 genai.configure(api_key=GEMINI_API_KEY)
 
 SYSTEM_PROMPT = """You are a compassionate cardiovascular health advisor and smoking cessation counselor.
@@ -28,7 +26,7 @@ SYSTEM_PROMPT = """You are a compassionate cardiovascular health advisor and smo
   * Current symptoms (chest pain, shortness of breath, etc.)
   * Exercise habits
   
-- When you have collected enough information (at minimum: age, gender, smoking history, family history, current symptoms, exercise habits), say:
+- When you have collected enough information (at minimum: age, gender, smoking history), say:
   "Thank you for sharing this information with me. Based on what you've told me, let me calculate your cardiovascular disease risk."
   
 - Then output EXACTLY in this format:
@@ -48,7 +46,7 @@ Always be warm, non-judgmental, and supportive. Never attempt to calculate risk 
 chat_sessions = {}
 
 def start_model_session():
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')
     chat = model.start_chat(history=[])
     chat.send_message(SYSTEM_PROMPT)
     return chat
@@ -182,24 +180,24 @@ def calculate_framingham_risk(fields):
     
     # Age points (different for men and women)
     if gender == 'male':
-        if age < 35: points += -1
-        elif age < 40: points += 0
-        elif age < 45: points += 1
-        elif age < 50: points += 2
-        elif age < 55: points += 3
-        elif age < 60: points += 4
-        elif age < 65: points += 5
-        elif age < 70: points += 6
-        else: points += 7
+        if age < 35: points += -1; age_pts = -1
+        elif age < 40: points += 0; age_pts = 0
+        elif age < 45: points += 1; age_pts = 1
+        elif age < 50: points += 2; age_pts = 2
+        elif age < 55: points += 3; age_pts = 3
+        elif age < 60: points += 4; age_pts = 4
+        elif age < 65: points += 5; age_pts = 5
+        elif age < 70: points += 6; age_pts = 6
+        else: points += 7; age_pts = 7
     else:  # female
-        if age < 35: points += -9
-        elif age < 40: points += -4
-        elif age < 45: points += 0
-        elif age < 50: points += 3
-        elif age < 55: points += 6
-        elif age < 60: points += 7
-        elif age < 65: points += 8
-        else: points += 8
+        if age < 35: points += -9; age_pts = -9
+        elif age < 40: points += -4; age_pts = -4
+        elif age < 45: points += 0; age_pts = 0
+        elif age < 50: points += 3; age_pts = 3
+        elif age < 55: points += 6; age_pts = 6
+        elif age < 60: points += 7; age_pts = 7
+        elif age < 65: points += 8; age_pts = 8
+        else: points += 8; age_pts = 8
     
     factors.append(f"Age: {age} years (baseline risk factor)")
     
@@ -341,14 +339,6 @@ def calculate_framingham_risk(fields):
 def home():
     return render_template('chat-assistant.html')
 
-@app.route('/index.html')
-def index_page():
-    return render_template('index.html')
-
-@app.route('/about.html')
-def about_page():
-    return render_template('about.html')
-
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
@@ -436,9 +426,5 @@ def reset():
         del chat_sessions[session_id]
     return jsonify({'message': 'Chat reset successfully'})
 
-# Required for production deployment
 if __name__ == '__main__':
-    # Use PORT environment variable for deployment platforms
-    port = int(os.environ.get('PORT', 5000))
-    # host='0.0.0.0' allows external connections
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(debug=True, port=5000)
