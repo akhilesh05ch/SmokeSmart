@@ -11,7 +11,8 @@ import joblib
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # ---------- CONFIG ----------
-GEMINI_API_KEY = "AIzaSyD9qQPdaze2lPrAK0VnYBYLI3SGH5PSHhQ"
+import os
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 # Load ML Model and Scaler
